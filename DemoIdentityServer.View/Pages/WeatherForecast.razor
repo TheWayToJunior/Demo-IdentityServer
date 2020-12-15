@@ -1,0 +1,116 @@
+﻿@page "/weather"
+
+@using IdentityModel.Client
+@using System.Text.Json
+@using Microsoft.AspNetCore.Authorization;
+
+@*@attribute [Authorize]*@
+
+@inject IJSRuntime js
+@inject HttpClient httpClient
+
+<h1>Weather forecast</h1>
+
+<p>This component demonstrates fetching data from the server.</p>
+<AuthorizeView>
+    <NotAuthorized>
+        <p><a href="https://localhost:10001/Identity/Login?ReturnUrl=https://localhost:5001/weather">NotAuthorized</a></p>
+    </NotAuthorized>
+    <Authorized>
+
+        @if (forecasts == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Temp. (C)</th>
+                        <th>Temp. (F)</th>
+                        <th>Summary</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var forecast in forecasts)
+                    {
+                        <tr>
+                            <td>@forecast.Date.ToShortDateString()</td>
+                            <td>@forecast.TemperatureC</td>
+                            <td>@forecast.TemperatureF</td>
+                            <td>@forecast.Summary</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private IEnumerable<Weather> forecasts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var key = "oidc.user:https://localhost:10001:BlazorClient";
+        var token = string.Empty;
+
+        var jsonSerializerOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        var stringInfo = await js.InvokeAsync<string>("sessionStorage.getItem", key);
+
+        if (!string.IsNullOrEmpty(stringInfo))
+        {
+            var clientInfo = JsonSerializer
+                .Deserialize<OidcClientInfo>(stringInfo, jsonSerializerOptions);
+
+            token = clientInfo.Access_Token;
+        }
+        else
+        {
+            Console.WriteLine($"{key} is null");
+
+            //var discoveryDocument = await httpClient.GetDiscoveryDocumentAsync("https://localhost:10001");
+            //var response = await httpClient.RequestClientCredentialsTokenAsync(new ClientCredentialsTokenRequest()
+            //{
+            //    Address = discoveryDocument.TokenEndpoint,
+            //    ClientId = "BlazorClient",
+            //    Scope = "WebAPI"
+            //});
+
+            //token = response.AccessToken;
+        }
+
+        httpClient.SetBearerToken(token);
+
+        var result = await httpClient.GetAsync("https://localhost:8001/WeatherForecast/Get");
+
+        if (result.IsSuccessStatusCode)
+        {
+            var response = await result.Content.ReadAsStringAsync();
+            forecasts = JsonSerializer
+                .Deserialize<IEnumerable<Weather>>(response, jsonSerializerOptions).ToArray();
+        }
+    }
+
+    class OidcClientInfo
+    {
+        public string Access_Token { get; set; }
+    }
+
+    class Weather
+    {
+        public DateTime Date { get; set; }
+
+        public int TemperatureC { get; set; }
+
+        public string Summary { get; set; }
+
+        public int TemperatureF { get; set; }
+    }
+}
