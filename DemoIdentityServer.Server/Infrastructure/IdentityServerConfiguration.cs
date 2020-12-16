@@ -38,7 +38,7 @@ namespace DemoIdentityServer.Server
                     ClientSecrets = { new Secret("TopSecretClientSecret".Sha256()) },
                     RequireClientSecret = true,
                     AllowAccessTokensViaBrowser = true,
-                    AllowedGrantTypes = GrantTypes.ResourceOwnerPassword, // ResourceOwnerPasswordAndClientCredentials
+                    AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
                     AllowedScopes =
                     {
                         "WebAPI",
@@ -50,6 +50,21 @@ namespace DemoIdentityServer.Server
                     RequireConsent = false,
                     AllowOfflineAccess = true,
                     AllowedCorsOrigins = { "https://localhost:8001" },
+                },
+
+                new Client
+                {
+                    ClientName = "Console Client",
+                    AlwaysSendClientClaims = true,
+                    ClientId = "ConsoleClient",
+                    ClientSecrets = { new Secret("ConsoleClientSecret".Sha256()) },
+                    RequireClientSecret = true,
+                    AllowAccessTokensViaBrowser = true,
+                    AllowedGrantTypes = GrantTypes.ResourceOwnerPassword, // ResourceOwnerPassword Code
+                    AllowedScopes = { "WebAPI" },
+                    RequireConsent = false,
+                    AllowOfflineAccess = true,
+                    //RedirectUris = { "https://localhost:5001/authentication/login-callback" },
                 }
             };
 
